@@ -1,0 +1,26 @@
+---
+- name: Set unactivate_ip_addr variable to unactivate IP address
+  ansible.builtin.set_fact:
+    unactivate_ip_addr: "{{ item.value }}"
+  loop: >-
+    {{ query('netbox.netbox.nb_lookup',
+             'ip-addresses',
+             api_endpoint=netbox_url,
+             token=netbox_token,
+             api_filter='tenant=%s' % (tenant_name)
+       )
+    }}
+  when:
+    - item.value.dns_name == vm_name + "." + domain | lower
+
+- name: Unactivate IP address
+  netbox.netbox.netbox_ip_address:
+    netbox_url: "{{ netbox_url }}"
+    netbox_token: "{{ netbox_token }}"
+    data:
+      address: "{{ unactivate_ip_addr.address }}"
+      family: "{{ unactivate_ip_addr.family.value }}"
+      tenant: "{{ tenant_name }}"
+    state: absent
+  when:
+    - unactivate_ip_addr is defined
